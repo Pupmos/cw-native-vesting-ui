@@ -2,9 +2,11 @@ import {
   Box,
   Button,
   Code,
+  Container,
   FormControl,
   FormHelperText,
   FormLabel,
+  Grid,
   Heading,
   HStack,
   Input,
@@ -12,6 +14,7 @@ import {
   Stack,
   StackItem,
   useToast,
+  Text
 } from "@chakra-ui/react";
 import { ButtonShape } from "@cosmology-ui/utils";
 import { useChain } from "@cosmos-kit/react";
@@ -139,85 +142,79 @@ export default function VestingContracts() {
     }
   )
   return (
-    <Box w={"full"}>
-      <Heading ml={6} as="h2" size="xl">
-        Create Vesting Contract
-      </Heading>
-      
-      <Stack mt={16} ml={10}>
-        <FormControl isRequired>
-          <FormLabel>Contract Label</FormLabel>
-          <Input
-            placeholder="Vesting Treetz for Pupmos"
-            size="md"
-            type="text"
-            value={contractLabel}
-            onChange={(e) => setContractLabel(e.target.value)}
-          />
-          {contractLabel}
-          <FormHelperText>
-            A label for your contract.
-          </FormHelperText>
-        </FormControl>
-        <FormControl isRequired>
-          <FormLabel>Amount</FormLabel>
-          <Input
-            min={0}
-            placeholder="Amount (juno)"
-            size="md"
-            type="number"
-            value={instantiateMsgDraft.amount}
-            onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, amount: e.target.value })}
-          />
-          <FormHelperText>
-            Amount of tokens to be vested.
-          </FormHelperText>
-        </FormControl>
-        <FormControl isRequired>
-          <FormLabel>Start Date</FormLabel>
-          <Input
-            placeholder="Start Date (local time)"
-            size="md"
-            type="datetime-local"
-            value={instantiateMsgDraft.start_time}
-            onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, start_time: e.target.value })}
-          />
-          <FormHelperText>
-            Start Date
-          </FormHelperText>
-        </FormControl>
-        <FormControl isRequired>
-          <FormLabel>End Date</FormLabel>
-          <Input
-            placeholder="End Date (local time)"
-            size="md"
-            type="datetime-local"
-            value={instantiateMsgDraft.end_time}
-            onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, end_time: e.target.value })}
-          />
-          <FormHelperText>
-            End Date
-          </FormHelperText>
-        </FormControl>
-        <FormControl isInvalid={!!instantiateMsgDraft.recipient && !isValidAddress(
-          instantiateMsgDraft.recipient
-        )} isRequired>
-          <FormLabel>Recipient</FormLabel>
-          <Input
-            placeholder="Recipient"
-            size="md"
-            type="text"
-            value={instantiateMsgDraft.recipient}
-            onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, recipient: e.target.value })}
-          />
-          <FormHelperText>
-            {`this is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so SOB cannot repurpose them.`}
-          </FormHelperText>
-        </FormControl>
-        <FormControl isRequired
+<Container >
+  <Heading size="xl" as="h2" gridColumn={0}>Create Vesting Contract</Heading>
+  <Spacer h={2} />
+  <Text>Create a vesting contract for a new employee, a grant recipient, an investor, or an investment.</Text>
+  <Spacer h={16}/>
+  <Grid display="grid" gridTemplateColumns="repeat(2, 1fr)" gridGap={10}>
+
+  <FormControl isRequired gridColumn={1}>
+    <FormLabel>Contract Label</FormLabel>
+    <Input
+      placeholder="Vesting Treetz for Pupmos"
+      size="md"
+      type="text"
+      value={contractLabel}
+      onChange={(e) => setContractLabel(e.target.value)}
+    />
+    {contractLabel}
+    <FormHelperText>A label for your contract.</FormHelperText>
+  </FormControl>
+  <FormControl isRequired gridColumn={2}>
+    <FormLabel>Amount</FormLabel>
+    <Input
+      min={0}
+      placeholder="Amount (juno)"
+      size="md"
+      type="number"
+      value={instantiateMsgDraft.amount}
+      onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, amount: e.target.value })}
+    />
+    <FormHelperText>Amount of tokens to be vested.</FormHelperText>
+  </FormControl>
+  <FormControl isRequired gridColumn={1}>
+    <FormLabel>Start Date</FormLabel>
+    <Input
+      placeholder="Start Date (local time)"
+      size="md"
+      type="datetime-local"
+      value={instantiateMsgDraft.start_time}
+      onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, start_time: e.target.value })}
+    />
+    <FormHelperText>Start Date</FormHelperText>
+  </FormControl>
+  <FormControl isRequired gridColumn={2}>
+    <FormLabel>End Date</FormLabel>
+    <Input
+      placeholder="End Date (local time)"
+      size="md"
+      type="datetime-local"
+      value={instantiateMsgDraft.end_time}
+      onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, end_time: e.target.value })}
+    />
+    <FormHelperText>End Date</FormHelperText>
+  </FormControl>
+  <FormControl isRequired
+    isInvalid={!!instantiateMsgDraft.recipient && !isValidAddress(
+      instantiateMsgDraft.recipient
+    )} gridColumn={1}
+  >
+    <FormLabel>Recipient</FormLabel>
+    <Input
+      placeholder="Recipient"
+      size="md"
+      type="text"
+      value={instantiateMsgDraft.recipient}
+      onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, recipient: e.target.value })}
+    />
+    <FormHelperText>{`This is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so SOB cannot repurpose them.`}</FormHelperText>
+  </FormControl>
+  <FormControl isRequired
           isInvalid={!!instantiateMsgDraft.operator && !isValidAddress(
             instantiateMsgDraft.operator
           )}
+          gridColumn={2}
         >  
           <FormLabel>Operator</FormLabel>
           <Input
@@ -235,6 +232,7 @@ export default function VestingContracts() {
           isInvalid={!!instantiateMsgDraft.oversight && !isValidAddress(
             instantiateMsgDraft.oversight
           )}
+          gridColumn={1}
         >
           <FormLabel>Oversight</FormLabel>
           <Input
@@ -248,9 +246,13 @@ export default function VestingContracts() {
             this is a secure multi-sig from SOB, which can be used in extraordinary circumstances, to change the Operator, or to halt the release of future tokens in the case of misbehaviour.
           </FormHelperText>
         </FormControl>
-      
 
-
+        <FormControl gridColumn={2}>
+        <Code>
+          <pre>
+          {JSON.stringify(instantiateMsg, null, 2)}
+          </pre>
+        </Code>
         <Button
           w="full"
           minW="fit-content"
@@ -260,8 +262,7 @@ export default function VestingContracts() {
           onClick={async () => {
             instantiateContract();
           }}
-
-          // isLoading={isLoading}
+                 // isLoading={isLoading}
           // isDisabled={isDisabled}
           bgImage="linear-gradient(109.6deg, rgba(157,75,199,1) 11.2%, rgba(119,81,204,1) 83.1%)"
           color="white"
@@ -277,69 +278,216 @@ export default function VestingContracts() {
               "linear-gradient(109.6deg, rgba(157,75,199,1) 11.2%, rgba(119,81,204,1) 83.1%)",
             opacity: 0.9,
           }}
-          // onClick={onClickConnectBtn}
+          gridColumn={2}
         >
-          {/* <Icon as={icon ? icon : IoWallet} mr={2} /> */}
-          {/* {buttonText ? buttonText : 'Connect Wallet'} */}
           Create Vesting Contract
         </Button>
-        <Spacer 
-          h={10}
-        />
-        <Heading 
-          as="h3"
-          size="md"
-         >
-          Raw Data
-        </Heading>
-        <Heading
-          as="h4"
-          size="sm"
-        >
-          Instantiate Msg Draft
-        </Heading>
+        </FormControl>
+        </Grid>
 
-        <Code>
-          <pre>
-          {JSON.stringify(instantiateMsgDraft, null, 2)}
-          </pre>
-        </Code>
-        <Heading
-          as="h4"
-          size="sm"
-        >
-          Instantiate Msg
-        </Heading>
+  </Container>
 
-        <Code>
-          <pre>
-          {JSON.stringify(instantiateMsg, null, 2)}
-          </pre>
-        </Code>
-        <Heading
-          as="h4"
-          size="sm"
-        >
-          Contract Label
-        </Heading>
-        <Code>
-          <pre>
-          {JSON.stringify(contractLabel, null, 2)}
-          </pre>
-        </Code>
-        <Heading
-          as="h4"
-          size="sm"
-        >
-          Instantiate Amount
-        </Heading>
-        <Code>
-          <pre>
-          funds: {JSON.stringify(instantiateAmount, null, 2)}ujuno
-          </pre>
-        </Code>
+    // <Box w={"full"}>
+    //   <Heading ml={6} as="h2" size="xl">
+    //     Create Vesting Contract
+    //   </Heading>
+      
+    //   <Stack mt={16} ml={10}>
+    //     <FormControl isRequired>
+    //       <FormLabel>Contract Label</FormLabel>
+    //       <Input
+    //         placeholder="Vesting Treetz for Pupmos"
+    //         size="md"
+    //         type="text"
+    //         value={contractLabel}
+    //         onChange={(e) => setContractLabel(e.target.value)}
+    //       />
+    //       {contractLabel}
+    //       <FormHelperText>
+    //         A label for your contract.
+    //       </FormHelperText>
+    //     </FormControl>
+    //     <FormControl isRequired>
+    //       <FormLabel>Amount</FormLabel>
+    //       <Input
+    //         min={0}
+    //         placeholder="Amount (juno)"
+    //         size="md"
+    //         type="number"
+    //         value={instantiateMsgDraft.amount}
+    //         onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, amount: e.target.value })}
+    //       />
+    //       <FormHelperText>
+    //         Amount of tokens to be vested.
+    //       </FormHelperText>
+    //     </FormControl>
+    //     <FormControl isRequired>
+    //       <FormLabel>Start Date</FormLabel>
+    //       <Input
+    //         placeholder="Start Date (local time)"
+    //         size="md"
+    //         type="datetime-local"
+    //         value={instantiateMsgDraft.start_time}
+    //         onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, start_time: e.target.value })}
+    //       />
+    //       <FormHelperText>
+    //         Start Date
+    //       </FormHelperText>
+    //     </FormControl>
+    //     <FormControl isRequired>
+    //       <FormLabel>End Date</FormLabel>
+    //       <Input
+    //         placeholder="End Date (local time)"
+    //         size="md"
+    //         type="datetime-local"
+    //         value={instantiateMsgDraft.end_time}
+    //         onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, end_time: e.target.value })}
+    //       />
+    //       <FormHelperText>
+    //         End Date
+    //       </FormHelperText>
+    //     </FormControl>
+    //     <FormControl isInvalid={!!instantiateMsgDraft.recipient && !isValidAddress(
+    //       instantiateMsgDraft.recipient
+    //     )} isRequired>
+    //       <FormLabel>Recipient</FormLabel>
+    //       <Input
+    //         placeholder="Recipient"
+    //         size="md"
+    //         type="text"
+    //         value={instantiateMsgDraft.recipient}
+    //         onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, recipient: e.target.value })}
+    //       />
+    //       <FormHelperText>
+    //         {`this is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so SOB cannot repurpose them.`}
+    //       </FormHelperText>
+    //     </FormControl>
+        // <FormControl isRequired
+        //   isInvalid={!!instantiateMsgDraft.operator && !isValidAddress(
+        //     instantiateMsgDraft.operator
+        //   )}
+        // >  
+        //   <FormLabel>Operator</FormLabel>
+        //   <Input
+        //     placeholder="Operator"
+        //     size="md"
+        //     type="text"
+        //     value={instantiateMsgDraft.operator}
+        //     onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, operator: e.target.value })}
+        //   />
+        //   <FormHelperText>
+        //     {`This is either the validator or an optional delegation to an "operational" employee from SOB, which can approve the payout of fully vested tokens to the final recipient. They cannot do anything else`}          
+        //   </FormHelperText>
+        // </FormControl>
+        // <FormControl isRequired 
+        //   isInvalid={!!instantiateMsgDraft.oversight && !isValidAddress(
+        //     instantiateMsgDraft.oversight
+        //   )}
+        // >
+        //   <FormLabel>Oversight</FormLabel>
+        //   <Input
+        //     placeholder="Oversight"
+        //     size="md"
+        //     type="text"
+        //     value={instantiateMsgDraft.oversight}
+        //     onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, oversight: e.target.value })}
+        //   />
+        //   <FormHelperText>
+        //     this is a secure multi-sig from SOB, which can be used in extraordinary circumstances, to change the Operator, or to halt the release of future tokens in the case of misbehaviour.
+        //   </FormHelperText>
+        // </FormControl>
+      
 
-      </Stack>
-    </Box>
+
+        // <Button
+        //   w="full"
+        //   minW="fit-content"
+        //   size="lg"
+        //   isLoading={isInstantiating}
+        //   isDisabled={isInstantiating || !(Object.values(instantiateMsgDraft).every((value) => {return value}) && !!contractLabel)}
+        //   onClick={async () => {
+        //     instantiateContract();
+        //   }}
+
+          // // isLoading={isLoading}
+          // // isDisabled={isDisabled}
+          // bgImage="linear-gradient(109.6deg, rgba(157,75,199,1) 11.2%, rgba(119,81,204,1) 83.1%)"
+          // color="white"
+          // opacity={1}
+          // transition="all .5s ease-in-out"
+          // _hover={{
+          //   bgImage:
+          //     "linear-gradient(109.6deg, rgba(157,75,199,1) 11.2%, rgba(119,81,204,1) 83.1%)",
+          //   opacity: 0.75,
+          // }}
+          // _active={{
+          //   bgImage:
+          //     "linear-gradient(109.6deg, rgba(157,75,199,1) 11.2%, rgba(119,81,204,1) 83.1%)",
+          //   opacity: 0.9,
+          // }}
+    //       // onClick={onClickConnectBtn}
+    //     >
+    //       {/* <Icon as={icon ? icon : IoWallet} mr={2} /> */}
+    //       {/* {buttonText ? buttonText : 'Connect Wallet'} */}
+    //       Create Vesting Contract
+    //     </Button>
+    //     <Spacer 
+    //       h={10}
+    //     />
+    //     <Heading 
+    //       as="h3"
+    //       size="md"
+    //      >
+    //       Raw Data
+    //     </Heading>
+    //     <Heading
+    //       as="h4"
+    //       size="sm"
+    //     >
+    //       Instantiate Msg Draft
+    //     </Heading>
+
+    //     <Code>
+    //       <pre>
+    //       {JSON.stringify(instantiateMsgDraft, null, 2)}
+    //       </pre>
+    //     </Code>
+    //     <Heading
+    //       as="h4"
+    //       size="sm"
+    //     >
+    //       Instantiate Msg
+    //     </Heading>
+
+        // <Code>
+        //   <pre>
+        //   {JSON.stringify(instantiateMsg, null, 2)}
+        //   </pre>
+        // </Code>
+    //     <Heading
+    //       as="h4"
+    //       size="sm"
+    //     >
+    //       Contract Label
+    //     </Heading>
+    //     <Code>
+    //       <pre>
+    //       {JSON.stringify(contractLabel, null, 2)}
+    //       </pre>
+    //     </Code>
+    //     <Heading
+    //       as="h4"
+    //       size="sm"
+    //     >
+    //       Instantiate Amount
+    //     </Heading>
+    //     <Code>
+    //       <pre>
+    //       funds: {JSON.stringify(instantiateAmount, null, 2)}ujuno
+    //       </pre>
+    //     </Code>
+
+    //   </Stack>
+    // </Box>
   );
 }

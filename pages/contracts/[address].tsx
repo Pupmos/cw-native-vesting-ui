@@ -15,6 +15,7 @@ import {
 } from "@chakra-ui/react";
 import { ButtonShape } from "@cosmology-ui/utils";
 import { useChain } from "@cosmos-kit/react";
+import Decimal from "decimal.js";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
@@ -26,7 +27,8 @@ export default function ContractAddressPage() {
   const router = useRouter();
   const contractAddress = router.query.address as string;
   const chain = useChain(chainName);
-  const { address, status, getCosmWasmClient, getSigningCosmWasmClient } = chain;
+  const { address, status, getCosmWasmClient, getSigningCosmWasmClient } =
+    chain;
   // /// Response for CanExecute query
   // #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
   // pub struct CanExecuteResponse {
@@ -83,13 +85,13 @@ export default function ContractAddressPage() {
   //     UnfreezeTokens {
   //         amount: Option<Uint128>,
   //     },
-  
+
   //     // TODO: Add Bond/Unbond implementations
   //     Bond {},
   //     Unbond {
   //         amount: Uint128,
   //     },
-  
+
   //     /// Oversight is able to change the operator'a account address.
   //     ChangeOperator {
   //         address: Addr,
@@ -109,7 +111,6 @@ export default function ContractAddressPage() {
   // If start_time >= t, Vested Tokens = 0
   // If start_time < t < end_time, Vested Tokens = InitialBalance * (t - start_time) / (end_time - start_time)
 
- 
   const canExecuteContractQuery = useQuery(
     ["can-execute-contract", address],
     async () => {
@@ -118,6 +119,7 @@ export default function ContractAddressPage() {
       const res = await client.queryContractSmart(contractAddress, {
         can_execute: { sender: address },
       });
+      console.log(res);
       return res;
     }
   );
@@ -136,6 +138,7 @@ export default function ContractAddressPage() {
     const res = await client.queryContractSmart(contractAddress, {
       token_info: {},
     });
+    console.log(res);
     return res;
   });
   const isHandedOverContractQuery = useQuery(
@@ -160,7 +163,7 @@ export default function ContractAddressPage() {
     ["contract-balance", contractAddress],
     async () => {
       const client = await getCosmWasmClient();
-      const balance = await client.getBalance(contractAddress, 'ujuno');
+      const balance = await client.getBalance(contractAddress, "ujuno");
       return balance;
     }
   );
@@ -173,33 +176,46 @@ export default function ContractAddressPage() {
     ) {
       return null;
     }
-    const { initial, frozen, released } = tokenInfoContractQuery.data;
+    let { initial, frozen, released } = tokenInfoContractQuery.data;
+    // convert to decimals
     const { vesting_plan } = accountInfoContractQuery.data;
     const { end_at, start_at } = vesting_plan.Continuous;
-    const releasable = Math.floor(+initial * (
-      (Date.now() * 1000000 - +start_at) / (+end_at - +start_at) - +released - +frozen
-    ));
-    return Math.max(releasable, 0);
-  }, [tokenInfoContractQuery.data, accountInfoContractQuery.data, vestingContractQuery.data]);
-    
+
+    const releasable = new Decimal(initial)
+      .mul(
+        new Decimal(Date.now())
+          .mul(1000000)
+          .sub(start_at)
+          .div(new Decimal(end_at).sub(start_at))
+      )
+      .sub(released)
+      .sub(frozen)
+      .floor()
+      .toString();
+    return releasable;
+  }, [
+    tokenInfoContractQuery.data,
+    accountInfoContractQuery.data,
+    vestingContractQuery.data,
+  ]);
 
   type ExecuteMsg = {
     release_tokens: {
       amount: string;
-    }
+    };
   };
 
-  // chakra toast 
+  // chakra toast
   const toast = useToast();
-  const querier = useQueryClient()
+  const querier = useQueryClient();
   // react-query cosmwasm mutations for all executemsgs
   const executeContractMutation = useMutation(
     async (executeMsg: ExecuteMsg) => {
       const client = await getSigningCosmWasmClient();
-      const res = await client.execute(address!, contractAddress, executeMsg,        {
-        gas: '2000000',
-        amount: [{ denom: 'ujuno', amount: '10000000' }]
-       });
+      const res = await client.execute(address!, contractAddress, executeMsg, {
+        gas: "2000000",
+        amount: [{ denom: "ujuno", amount: "10000000" }],
+      });
       return res;
     },
     {
@@ -211,7 +227,7 @@ export default function ContractAddressPage() {
         querier.invalidateQueries(["can-execute-contract", address]);
         querier.invalidateQueries(["vesting-contract", contractAddress]);
 
-      //  charkra toast
+        //  charkra toast
         toast({
           title: "Success",
           description: "Contract executed",
@@ -219,32 +235,30 @@ export default function ContractAddressPage() {
           duration: 5000,
           isClosable: true,
         });
-        
       },
     }
   );
 
-
   return (
     <Box p={4}>
       <Heading as="h1" size="lg" mb={4}>
-        {vestingContractQuery.data?.label || 'loading...'}
+        {vestingContractQuery.data?.label || "loading..."}
       </Heading>
       {/* ACTIONS (EXECUTE MSGS) */}
-     
+
       <Stack spacing={4}>
         {/* releaseable tokens */}
         <StackItem>
           <Heading as="h2" size="md" mb={4}>
             Releasable Tokens
           </Heading>
-          <Code>{releasableTokens?.toString() || 'loading...'}</Code>
+          <Code>{releasableTokens?.toString() || "loading..."}</Code>
           <Spacer></Spacer>
-          <Button 
+          <Button
             onClick={() => {
               executeContractMutation.mutate({
                 release_tokens: {
-                  amount: releasableTokens?.toString() || '0',
+                  amount: releasableTokens?.toString() || "0",
                 },
               });
             }}
@@ -260,7 +274,10 @@ export default function ContractAddressPage() {
           <Heading as="h2" size="md" mb={4}>
             Can Execute
           </Heading>
-          <Code>{JSON.stringify(canExecuteContractQuery.data) || 'loading...'}</Code>
+          <Code>
+            {JSON.stringify(canExecuteContractQuery.data) || "loading..."}
+          </Code>
+          <Code>{JSON.stringify(canExecuteContractQuery.data)}</Code>
         </StackItem>
 
         {/* show the user the account info in a visually attractive way */}
@@ -273,19 +290,25 @@ export default function ContractAddressPage() {
               <Heading as="h3" size="sm" mb={4}>
                 Recipient
               </Heading>
-              <Code>{accountInfoContractQuery.data?.recipient || 'loading...'}</Code>
+              <Code>
+                {accountInfoContractQuery.data?.recipient || "loading..."}
+              </Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Operator
               </Heading>
-              <Code>{accountInfoContractQuery.data?.operator || 'loading...' }</Code>
+              <Code>
+                {accountInfoContractQuery.data?.operator || "loading..."}
+              </Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Oversight
               </Heading>
-              <Code>{accountInfoContractQuery.data?.oversight || 'loading...'}</Code>
+              <Code>
+                {accountInfoContractQuery.data?.oversight || "loading..."}
+              </Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
@@ -293,19 +316,17 @@ export default function ContractAddressPage() {
               </Heading>
               {/* show nanosecond time of accountInfoContractQuery.data?.vesting_plan.start_at and accountInfoContractQuery.data?.vesting_plan.end_at as locale date times */}
               <Code>
-                {
-                  new Date(
-                    accountInfoContractQuery.data?.vesting_plan.Continuous.start_at / 1000000
-                  ).toLocaleString()
-                }
+                {new Date(
+                  accountInfoContractQuery.data?.vesting_plan.Continuous
+                    .start_at / 1000000
+                ).toLocaleString()}
               </Code>
               -
               <Code>
-                {
-                  new Date(
-                    accountInfoContractQuery.data?.vesting_plan.Continuous.end_at / 1000000
-                  ).toLocaleString()
-                }
+                {new Date(
+                  accountInfoContractQuery.data?.vesting_plan.Continuous
+                    .end_at / 1000000
+                ).toLocaleString()}
               </Code>
             </StackItem>
           </Stack>
@@ -319,32 +340,43 @@ export default function ContractAddressPage() {
               <Heading as="h3" size="sm" mb={4}>
                 Denom
               </Heading>
-              <Code>{tokenInfoContractQuery.data?.denom || 'loading...' }</Code>
+              <Code>{tokenInfoContractQuery.data?.denom || "loading..."}</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Initial
               </Heading>
-              <Code>{tokenInfoContractQuery.data?.initial?.toString()  || 'loading...' }</Code>
+              <Code>
+                {tokenInfoContractQuery.data?.initial?.toString() ||
+                  "loading..."}
+              </Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Released
               </Heading>
-              <Code>{tokenInfoContractQuery.data?.released?.toString()  || 'loading...' }</Code>
+              <Code>
+                {tokenInfoContractQuery.data?.released?.toString() ||
+                  "loading..."}
+              </Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Remaining
               </Heading>
-              <Code>{tokenInfoContractQuery.data?.remaining?.toString() || 'loading...' }</Code>
+              <Code>
+                {tokenInfoContractQuery.data?.balance?.toString() ||
+                  "loading..."}
+              </Code>
             </StackItem>
             {/* raw data */}
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Raw Data
               </Heading>
-              <Code>{JSON.stringify(tokenInfoContractQuery.data) || 'loading...' }</Code>
+              <Code>
+                {JSON.stringify(tokenInfoContractQuery.data) || "loading..."}
+              </Code>
             </StackItem>
           </Stack>
         </StackItem>
@@ -353,11 +385,11 @@ export default function ContractAddressPage() {
           <Heading as="h2" size="md" mb={4}>
             Is Handed Over
           </Heading>
-          <Code>{JSON.stringify(isHandedOverContractQuery.data) || 'loading...' }</Code>
+          <Code>
+            {JSON.stringify(isHandedOverContractQuery.data) || "loading..."}
+          </Code>
         </StackItem>
 
-
-        
         <StackItem>
           <Heading as="h2" size="md" mb={4}>
             Contract Address
@@ -373,19 +405,19 @@ export default function ContractAddressPage() {
               <Heading as="h3" size="sm" mb={4}>
                 Label
               </Heading>
-              <Code>{vestingContractQuery.data?.label || 'loading...' }</Code>
+              <Code>{vestingContractQuery.data?.label || "loading..."}</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Creator
               </Heading>
-              <Code>{vestingContractQuery.data?.creator || 'loading...' }</Code>
+              <Code>{vestingContractQuery.data?.creator || "loading..."}</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Code ID
               </Heading>
-              <Code>{vestingContractQuery.data?.codeId || 'loading...' }</Code>
+              <Code>{vestingContractQuery.data?.codeId || "loading..."}</Code>
             </StackItem>
           </Stack>
         </StackItem>
