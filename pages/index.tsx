@@ -48,6 +48,7 @@ export default function VestingContracts() {
               <Box
                 cursor="pointer"
                 bg="gray.50"
+                _dark={{ bg: "gray.700" }}
                 rounded={"xl"}
                 shadow="sm"
                 w="full"

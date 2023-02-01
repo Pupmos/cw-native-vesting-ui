@@ -199,6 +199,11 @@ export default function ContractAddressPage() {
     vestingContractQuery.data,
   ]);
 
+  const humanReadableReleasableTokens = useMemo(() => {
+    if (!releasableTokens) return '';
+    return new Decimal(releasableTokens).div(1000000).toString() + ' JUNO';
+  }, [releasableTokens]);
+
   type ExecuteMsg = {
     release_tokens: {
       amount: string;
@@ -252,7 +257,7 @@ export default function ContractAddressPage() {
           <Heading as="h2" size="md" mb={4}>
             Releasable Tokens
           </Heading>
-          <Code>{releasableTokens?.toString() || "loading..."}</Code>
+          <Code>{humanReadableReleasableTokens?.toString() || "loading..."}</Code>
           <Spacer></Spacer>
           <Button
             onClick={() => {
@@ -277,7 +282,6 @@ export default function ContractAddressPage() {
           <Code>
             {JSON.stringify(canExecuteContractQuery.data) || "loading..."}
           </Code>
-          <Code>{JSON.stringify(canExecuteContractQuery.data)}</Code>
         </StackItem>
 
         {/* show the user the account info in a visually attractive way */}
@@ -406,6 +410,12 @@ export default function ContractAddressPage() {
                 Label
               </Heading>
               <Code>{vestingContractQuery.data?.label || "loading..."}</Code>
+            </StackItem>
+            <StackItem>
+              <Heading as="h3" size="sm" mb={4}>
+                Admin
+              </Heading>
+              <Code>{vestingContractQuery.data?.admin ?? vestingContractQuery.isLoading ? "loading..." : 'None'}</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
