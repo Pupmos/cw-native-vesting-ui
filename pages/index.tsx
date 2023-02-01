@@ -5,6 +5,8 @@ import {
   HStack,
   Stack,
   StackItem,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
 import { ButtonShape } from "@cosmology-ui/utils";
 import { useChain } from "@cosmos-kit/react";
@@ -53,10 +55,19 @@ export default function VestingContracts() {
                 shadow="sm"
                 w="full"
               >
-                <HStack px={4} py={6}>
+                <VStack px={4} py={6} textAlign='left' alignItems={'flex-start'}>
                   <Heading size={"md"}>{contract.label}</Heading>
-                  <p>{contract.address}</p>
-                </HStack>
+                  {/* chakra ui ellipsis */}
+                  <Text
+                    overflow="hidden"
+                    textOverflow="ellipsis"
+                    whiteSpace="nowrap"
+                    fontFamily={'mono'}
+                    w={"full"}
+                  >
+                    {contract.address}
+                  </Text>
+                </VStack>
               </Box>
             </Link>
           );
