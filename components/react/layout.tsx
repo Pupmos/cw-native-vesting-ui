@@ -225,7 +225,7 @@ const MobileMenu = ({
                   },
                 }}
               >
-                {links.map(({ label, href, icon }) => (
+                {links?.map(({ label, href, icon }) => (
                   <>
                     {customLink ? (
                       customLink(label, href)

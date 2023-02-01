@@ -49,10 +49,10 @@ export function stringTruncateFromCenter(str: string, maxLength: number) {
   return str.substring(0, left) + midChar + str.substring(right);
 }
 
-export function handleChangeColorModeValue(
+export function handleChangeColorModeValue<T = string>(
   colorMode: string,
-  light: string,
-  dark: string
+  light: T,
+  dark: T
 ) {
   if (colorMode === 'light') return light;
   if (colorMode === 'dark') return dark;
