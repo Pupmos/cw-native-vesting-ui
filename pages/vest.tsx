@@ -211,7 +211,7 @@ export default function VestingContracts() {
             onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, recipient: e.target.value })}
           />
           <FormHelperText>
-            This is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so SOB cannot repurpose them.
+            {`this is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so SOB cannot repurpose them.`}
           </FormHelperText>
         </FormControl>
         <FormControl isRequired
@@ -227,6 +227,9 @@ export default function VestingContracts() {
             value={instantiateMsgDraft.operator}
             onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, operator: e.target.value })}
           />
+          <FormHelperText>
+            {`This is either the validator or an optional delegation to an "operational" employee from SOB, which can approve the payout of fully vested tokens to the final recipient. They cannot do anything else`}          
+          </FormHelperText>
         </FormControl>
         <FormControl isRequired 
           isInvalid={!!instantiateMsgDraft.oversight && !isValidAddress(
@@ -242,7 +245,7 @@ export default function VestingContracts() {
             onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, oversight: e.target.value })}
           />
           <FormHelperText>
-            This is a secure multi-sig from SOB, which can be used in extraordinary circumstances, to change the Operator, or to halt the release of future tokens in the case of misbehaviour.
+            this is a secure multi-sig from SOB, which can be used in extraordinary circumstances, to change the Operator, or to halt the release of future tokens in the case of misbehaviour.
           </FormHelperText>
         </FormControl>
       
