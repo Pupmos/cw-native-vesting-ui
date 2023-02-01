@@ -568,10 +568,10 @@ export default function Layout (
       label: "🚀  Vest Tokens",
       href: "/vest",
     },
-    // {
-    //   label: "⚡️ Create Cosmos App",
-    //   href: "https://github.com/cosmology-tech/create-cosmos-app",
-    // },
+    {
+      label: "📖 How it Works",
+      href: "/how-it-works",
+    },
     // {
     //   label: "🔧 Cosmos Kit",
     //   href: "https://github.com/cosmology-tech/cosmos-kit",

@@ -147,9 +147,17 @@ export default function VestingContracts() {
   <Spacer h={2} />
   <Text>Create a vesting contract for a new employee, a grant recipient, an investor, or an investment.</Text>
   <Spacer h={16}/>
-  <Grid display="grid" gridTemplateColumns="repeat(2, 1fr)" gridGap={10}>
+  {/* display in one column when on mobile devices */}
+  <Grid 
+  display="grid" 
+  gridTemplateColumns={
+    { xs: "repeat(1, 1fr)", lg: "repeat(2, 1fr)" }
+  }
+  gridGap={10}
 
-  <FormControl isRequired gridColumn={1}>
+  >
+
+  <FormControl isRequired gridColumn={    { xs: 1, lg: 1 }}>
     <FormLabel>Contract Label</FormLabel>
     <Input
       placeholder="Vesting Treetz for Pupmos"
@@ -161,7 +169,9 @@ export default function VestingContracts() {
     {contractLabel}
     <FormHelperText>A label for your contract.</FormHelperText>
   </FormControl>
-  <FormControl isRequired gridColumn={2}>
+  <FormControl isRequired gridColumn={
+    { xs: 1, lg: 2 }
+  }>
     <FormLabel>Amount</FormLabel>
     <Input
       min={0}
@@ -173,7 +183,8 @@ export default function VestingContracts() {
     />
     <FormHelperText>Amount of tokens to be vested.</FormHelperText>
   </FormControl>
-  <FormControl isRequired gridColumn={1}>
+  <FormControl isRequired gridColumn={    { xs: 1, lg: 1 }
+}>
     <FormLabel>Start Date</FormLabel>
     <Input
       placeholder="Start Date (local time)"
@@ -184,7 +195,8 @@ export default function VestingContracts() {
     />
     <FormHelperText>Start Date</FormHelperText>
   </FormControl>
-  <FormControl isRequired gridColumn={2}>
+  <FormControl isRequired gridColumn={    { xs: 1, lg: 2 }
+}>
     <FormLabel>End Date</FormLabel>
     <Input
       placeholder="End Date (local time)"
@@ -214,7 +226,8 @@ export default function VestingContracts() {
           isInvalid={!!instantiateMsgDraft.operator && !isValidAddress(
             instantiateMsgDraft.operator
           )}
-          gridColumn={2}
+          gridColumn={    { xs: 1, lg: 2 }
+        }
         >  
           <FormLabel>Operator</FormLabel>
           <Input
@@ -247,12 +260,14 @@ export default function VestingContracts() {
           </FormHelperText>
         </FormControl>
 
-        <FormControl gridColumn={2}>
+        <FormControl gridColumn={    { xs: 1, lg: 2 }
+}>
         <Code>
           <pre>
           {JSON.stringify(instantiateMsg, null, 2)}
           </pre>
         </Code>
+        <Spacer h={5} />
         <Button
           w="full"
           minW="fit-content"
@@ -278,12 +293,14 @@ export default function VestingContracts() {
               "linear-gradient(109.6deg, rgba(157,75,199,1) 11.2%, rgba(119,81,204,1) 83.1%)",
             opacity: 0.9,
           }}
-          gridColumn={2}
+          gridColumn={    { xs: 1, lg: 2 }
+        }
         >
           Create Vesting Contract
         </Button>
         </FormControl>
         </Grid>
+        <Spacer h={20} />
 
   </Container>
 
