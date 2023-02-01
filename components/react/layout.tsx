@@ -565,7 +565,7 @@ export default function Layout (
       href: "/",
     },
     {
-      label: "🚀 Vest Tokens",
+      label: "🚀  Vest Tokens",
       href: "/vest",
     },
     // {

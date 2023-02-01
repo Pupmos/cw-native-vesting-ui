@@ -18,7 +18,7 @@ import { useChain } from "@cosmos-kit/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { ConnectWalletButton } from "../../components";
 import { chainName, cwVestingCodeId } from "../../config";
 
@@ -191,6 +191,7 @@ export default function ContractAddressPage() {
 
   // chakra toast 
   const toast = useToast();
+  const querier = useQueryClient()
   // react-query cosmwasm mutations for all executemsgs
   const executeContractMutation = useMutation(
     async (executeMsg: ExecuteMsg) => {
@@ -203,6 +204,13 @@ export default function ContractAddressPage() {
     },
     {
       onSuccess: () => {
+        querier.invalidateQueries(["account-info-contract"]);
+        querier.invalidateQueries(["token-info-contract"]);
+        querier.invalidateQueries(["is-handed-over-contract"]);
+        querier.invalidateQueries(["contract-balance", contractAddress]);
+        querier.invalidateQueries(["can-execute-contract", address]);
+        querier.invalidateQueries(["vesting-contract", contractAddress]);
+
       //  charkra toast
         toast({
           title: "Success",
@@ -220,7 +228,7 @@ export default function ContractAddressPage() {
   return (
     <Box p={4}>
       <Heading as="h1" size="lg" mb={4}>
-        Vesting Contract
+        {vestingContractQuery.data?.label || 'loading...'}
       </Heading>
       {/* ACTIONS (EXECUTE MSGS) */}
      
@@ -230,7 +238,7 @@ export default function ContractAddressPage() {
           <Heading as="h2" size="md" mb={4}>
             Releasable Tokens
           </Heading>
-          <Code>{releasableTokens}</Code>
+          <Code>{releasableTokens?.toString() || 'loading...'}</Code>
           <Spacer></Spacer>
           <Button 
             onClick={() => {
@@ -252,7 +260,7 @@ export default function ContractAddressPage() {
           <Heading as="h2" size="md" mb={4}>
             Can Execute
           </Heading>
-          <Code>{JSON.stringify(canExecuteContractQuery.data)}</Code>
+          <Code>{JSON.stringify(canExecuteContractQuery.data) || 'loading...'}</Code>
         </StackItem>
 
         {/* show the user the account info in a visually attractive way */}
@@ -265,19 +273,19 @@ export default function ContractAddressPage() {
               <Heading as="h3" size="sm" mb={4}>
                 Recipient
               </Heading>
-              <Code>{accountInfoContractQuery.data?.recipient}</Code>
+              <Code>{accountInfoContractQuery.data?.recipient || 'loading...'}</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Operator
               </Heading>
-              <Code>{accountInfoContractQuery.data?.operator}</Code>
+              <Code>{accountInfoContractQuery.data?.operator || 'loading...' }</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Oversight
               </Heading>
-              <Code>{accountInfoContractQuery.data?.oversight}</Code>
+              <Code>{accountInfoContractQuery.data?.oversight || 'loading...'}</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
@@ -311,32 +319,32 @@ export default function ContractAddressPage() {
               <Heading as="h3" size="sm" mb={4}>
                 Denom
               </Heading>
-              <Code>{tokenInfoContractQuery.data?.denom}</Code>
+              <Code>{tokenInfoContractQuery.data?.denom || 'loading...' }</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Initial
               </Heading>
-              <Code>{tokenInfoContractQuery.data?.initial}</Code>
+              <Code>{tokenInfoContractQuery.data?.initial?.toString()  || 'loading...' }</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Released
               </Heading>
-              <Code>{tokenInfoContractQuery.data?.released}</Code>
+              <Code>{tokenInfoContractQuery.data?.released?.toString()  || 'loading...' }</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Remaining
               </Heading>
-              <Code>{tokenInfoContractQuery.data?.remaining}</Code>
+              <Code>{tokenInfoContractQuery.data?.remaining?.toString() || 'loading...' }</Code>
             </StackItem>
             {/* raw data */}
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Raw Data
               </Heading>
-              <Code>{JSON.stringify(tokenInfoContractQuery.data)}</Code>
+              <Code>{JSON.stringify(tokenInfoContractQuery.data) || 'loading...' }</Code>
             </StackItem>
           </Stack>
         </StackItem>
@@ -345,7 +353,7 @@ export default function ContractAddressPage() {
           <Heading as="h2" size="md" mb={4}>
             Is Handed Over
           </Heading>
-          <Code>{JSON.stringify(isHandedOverContractQuery.data)}</Code>
+          <Code>{JSON.stringify(isHandedOverContractQuery.data) || 'loading...' }</Code>
         </StackItem>
 
 
@@ -365,19 +373,19 @@ export default function ContractAddressPage() {
               <Heading as="h3" size="sm" mb={4}>
                 Label
               </Heading>
-              <Code>{vestingContractQuery.data?.label}</Code>
+              <Code>{vestingContractQuery.data?.label || 'loading...' }</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Creator
               </Heading>
-              <Code>{vestingContractQuery.data?.creator}</Code>
+              <Code>{vestingContractQuery.data?.creator || 'loading...' }</Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
                 Code ID
               </Heading>
-              <Code>{vestingContractQuery.data?.codeId}</Code>
+              <Code>{vestingContractQuery.data?.codeId || 'loading...' }</Code>
             </StackItem>
           </Stack>
         </StackItem>

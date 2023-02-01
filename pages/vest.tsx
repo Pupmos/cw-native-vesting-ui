@@ -8,14 +8,16 @@ import {
   Heading,
   HStack,
   Input,
+  Spacer,
   Stack,
   StackItem,
+  useToast,
 } from "@chakra-ui/react";
 import { ButtonShape } from "@cosmology-ui/utils";
 import { useChain } from "@cosmos-kit/react";
 import Link from "next/link";
 import { useMemo, useState } from 'react';
-import { useQuery } from "react-query";
+import { useMutation, useQuery } from "react-query";
 import { ConnectWalletButton } from "../components";
 import { chainName, cwVestingCodeId } from "../config";
 
@@ -43,6 +45,7 @@ export default function VestingContracts() {
     status,
     getRpcEndpoint,
     getCosmWasmClient,
+    getSigningCosmWasmClient
   } = useChain(chainName);
 
   const vestingContractsQuery = useQuery("vesting-contracts", async () => {
@@ -64,25 +67,77 @@ export default function VestingContracts() {
     operator: '',
     oversight: '',
   });
+  const [contractLabel, setContractLabel] = useState("");
+  const instantiateAmount = useMemo(() => {
+    if (!instantiateMsgDraft.amount) return '0';
+    return Math.floor(+instantiateMsgDraft.amount * 1000000).toFixed(0)
+  }, [instantiateMsgDraft.amount]);
   const instantiateMsg = useMemo(() => {
     return {
       "denom": "ujuno",
       // Recipient - this is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so SOB cannot repurpose them.
-      "recipient": "",
+      "recipient": instantiateMsgDraft.recipient,
       // Operator - this is either the validator or an optional delegation to an "operational" employee from SOB, which can approve the payout of fully vested tokens to the final recipient. They cannot do anything else
-      "operator": "",
+      "operator": instantiateMsgDraft.operator,
       // Oversight - this is a secure multi-sig from SOB, which can be used in extraordinary circumstances, to change the Operator, or to halt the release of future tokens in the case of misbehaviour.
-      "oversight": "",
+      "oversight": instantiateMsgDraft.oversight,
       "vesting_plan": {
         "Continuous": {
           // in nanoseconds
-          "start_at": new Date(instantiateMsgDraft.start_time).getTime() * 1000000,
+          "start_at": (new Date(instantiateMsgDraft.start_time).getTime() * 1000000).toFixed(0),
           // in nanoseconds
-          "end_at": new Date(instantiateMsgDraft.end_time).getTime() * 1000000,
+          "end_at": (new Date(instantiateMsgDraft.end_time).getTime() * 1000000).toFixed(0),
         }
       }
     }
-  }, [instantiateMsgDraft.amount, instantiateMsgDraft.start_time, instantiateMsgDraft.end_time]);
+  }, [instantiateMsgDraft.start_time, instantiateMsgDraft.end_time, instantiateMsgDraft.recipient, instantiateMsgDraft.operator, instantiateMsgDraft.oversight]);
+  const toast = useToast();
+
+  // react-query mutation to instantiate a contract
+  const { mutate: instantiateContract, isLoading: isInstantiating } = useMutation(
+    async () => {
+      if (!address) {
+        throw new Error("No wallet connected");
+      }
+      const client = await getSigningCosmWasmClient();
+      const contract = await client.instantiate(
+        address,
+        cwVestingCodeId,
+        instantiateMsg,
+        contractLabel,
+        {
+          gas: '2000000',
+          amount: [{ denom: 'ujuno', amount: '10000000' }]
+         },
+         {
+          funds: [{ denom: 'ujuno', amount: `${instantiateAmount}` }]
+         }
+      );
+      return contract;
+    },
+    {
+      onSuccess: () => {
+        toast({
+          title: "Vesting Contract Instantiated",
+          description: "Your vesting contract has been instantiated.",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        vestingContractsQuery.refetch();
+      },
+      onError: (error) => {
+        toast({
+          title: "Error instantiating contract",
+          // @ts-ignore
+          description: error?.message || error,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    }
+  )
   return (
     <Box w={"full"}>
       <Heading ml={6} as="h2" size="xl">
@@ -90,6 +145,20 @@ export default function VestingContracts() {
       </Heading>
       
       <Stack mt={16} ml={10}>
+        <FormControl isRequired>
+          <FormLabel>Contract Label</FormLabel>
+          <Input
+            placeholder="Vesting Treetz for Pupmos"
+            size="md"
+            type="text"
+            value={contractLabel}
+            onChange={(e) => setContractLabel(e.target.value)}
+          />
+          {contractLabel}
+          <FormHelperText>
+            A label for your contract.
+          </FormHelperText>
+        </FormControl>
         <FormControl isRequired>
           <FormLabel>Amount</FormLabel>
           <Input
@@ -183,6 +252,12 @@ export default function VestingContracts() {
           w="full"
           minW="fit-content"
           size="lg"
+          isLoading={isInstantiating}
+          isDisabled={isInstantiating || !(Object.values(instantiateMsgDraft).every((value) => {return value}) && !!contractLabel)}
+          onClick={async () => {
+            instantiateContract();
+          }}
+
           // isLoading={isLoading}
           // isDisabled={isDisabled}
           bgImage="linear-gradient(109.6deg, rgba(157,75,199,1) 11.2%, rgba(119,81,204,1) 83.1%)"
@@ -205,11 +280,59 @@ export default function VestingContracts() {
           {/* {buttonText ? buttonText : 'Connect Wallet'} */}
           Create Vesting Contract
         </Button>
+        <Spacer 
+          h={10}
+        />
+        <Heading 
+          as="h3"
+          size="md"
+         >
+          Raw Data
+        </Heading>
+        <Heading
+          as="h4"
+          size="sm"
+        >
+          Instantiate Msg Draft
+        </Heading>
+
         <Code>
           <pre>
-
           {JSON.stringify(instantiateMsgDraft, null, 2)}
+          </pre>
+        </Code>
+        <Heading
+          as="h4"
+          size="sm"
+        >
+          Instantiate Msg
+        </Heading>
+
+        <Code>
+          <pre>
           {JSON.stringify(instantiateMsg, null, 2)}
+          </pre>
+        </Code>
+        <Heading
+          as="h4"
+          size="sm"
+        >
+          Contract Label
+        </Heading>
+        <Code>
+          <pre>
+          {JSON.stringify(contractLabel, null, 2)}
+          </pre>
+        </Code>
+        <Heading
+          as="h4"
+          size="sm"
+        >
+          Instantiate Amount
+        </Heading>
+        <Code>
+          <pre>
+          funds: {JSON.stringify(instantiateAmount, null, 2)}ujuno
           </pre>
         </Code>
 
