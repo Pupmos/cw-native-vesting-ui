@@ -13,7 +13,7 @@ import { useChain } from "@cosmos-kit/react";
 import Link from "next/link";
 import { useQuery } from "react-query";
 import { ConnectWalletButton } from "../components";
-import { chainName, cwVestingCodeId } from "../config";
+import { chainName, cwVestingCodeIds } from "../config";
 
 export default function VestingContracts() {
   const {
@@ -26,7 +26,12 @@ export default function VestingContracts() {
 
   const vestingContractsQuery = useQuery("vesting-contracts", async () => {
     const client = await getCosmWasmClient();
-    const contractAddrs = await client.getContracts(cwVestingCodeId);
+    const contractAddrs = (await Promise.all(cwVestingCodeIds.map(
+      async (codeId) => {
+        const contractAddrs = await client.getContracts(codeId.codeId);
+        return contractAddrs;
+      }
+    ))).flat();
     const contracts = await Promise.all(
       contractAddrs.map(async (addr) => {
         const contract = await client.getContract(addr);

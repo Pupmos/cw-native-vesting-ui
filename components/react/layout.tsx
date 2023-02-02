@@ -32,7 +32,6 @@ import {
   chainassets,
   chainName,
   coin,
-  cwVestingCodeId,
   dependencies,
   products,
 } from '../../config';

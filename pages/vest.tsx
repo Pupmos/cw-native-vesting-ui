@@ -22,7 +22,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "react-query";
 import { ConnectWalletButton } from "../components";
-import { chainName, cwVestingCodeId } from "../config";
+import { chainName, cwVestingCodeIds } from "../config";
 
 // address validation function using cosmjs
 import { fromBech32 } from "@cosmjs/encoding";
@@ -56,7 +56,13 @@ export default function VestingContracts() {
 
   const vestingContractsQuery = useQuery("vesting-contracts", async () => {
     const client = await getCosmWasmClient();
-    const contractAddrs = await client.getContracts(cwVestingCodeId);
+    const contractAddrs = (await Promise.all(cwVestingCodeIds.map(
+      async (codeId) => {
+        const contractAddrs = await client.getContracts(codeId.codeId);
+        return contractAddrs;
+      }
+    ))).flat();
+
     const contracts = await Promise.all(
       contractAddrs.map(async (addr) => {
         const contract = await client.getContract(addr);
@@ -82,11 +88,11 @@ export default function VestingContracts() {
   const instantiateMsg = useMemo(() => {
     return {
       denom: "ujuno",
-      // Recipient - this is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so SOB cannot repurpose them.
+      // Recipient - this is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so Issuer cannot repurpose them.
       recipient: instantiateMsgDraft.recipient,
-      // Operator - this is either the validator or an optional delegation to an "operational" employee from SOB, which can approve the payout of fully vested tokens to the final recipient. They cannot do anything else
+      // Operator - this is either the validator or an optional delegation to an "operational" employee from Issuer, which can approve the payout of fully vested tokens to the final recipient. They cannot do anything else
       operator: instantiateMsgDraft.operator,
-      // Oversight - this is a secure multi-sig from SOB, which can be used in extraordinary circumstances, to change the Operator, or to halt the release of future tokens in the case of misbehaviour.
+      // Oversight - this is a secure multi-sig from Issuer, which can be used in extraordinary circumstances, to change the Operator, or to halt the release of future tokens in the case of misbehaviour.
       oversight: instantiateMsgDraft.oversight,
       vesting_plan: {
         Continuous: {
@@ -120,7 +126,8 @@ export default function VestingContracts() {
         const client = await getSigningCosmWasmClient();
         const contract = await client.instantiate(
           address,
-          cwVestingCodeId,
+          // newest code id
+          Math.max(...cwVestingCodeIds.map((codeId) => codeId.codeId)),
           instantiateMsg,
           contractLabel,
           {
@@ -260,7 +267,7 @@ export default function VestingContracts() {
               })
             }
           />
-          <FormHelperText>{`This is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so SOB cannot repurpose them.`}</FormHelperText>
+          <FormHelperText>{`This is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so Issuer cannot repurpose them.`}</FormHelperText>
         </FormControl>
         <FormControl
           isRequired
@@ -284,7 +291,7 @@ export default function VestingContracts() {
             }
           />
           <FormHelperText>
-            {`This is either the validator or an optional delegation to an "operational" employee from SOB, which can approve the payout of fully vested tokens to the final recipient. They cannot do anything else`}
+            {`This is either the validator or an optional delegation to an "operational" employee from Issuer, which can approve the payout of fully vested tokens to the final recipient. They cannot do anything else`}
           </FormHelperText>
         </FormControl>
         <FormControl
@@ -309,7 +316,7 @@ export default function VestingContracts() {
             }
           />
           <FormHelperText>
-            this is a secure multi-sig from SOB, which can be used in
+            this is a secure multi-sig from Issuer, which can be used in
             extraordinary circumstances, to change the Operator, or to halt the
             release of future tokens in the case of misbehaviour.
           </FormHelperText>
@@ -333,7 +340,7 @@ export default function VestingContracts() {
             }
           />
           <FormHelperText>
-            this is a secure multi-sig from SOB, which can be used in
+            this is a secure multi-sig from Issuer, which can be used in
             extraordinary circumstances, to change the Operator, or to halt the
             release of future tokens in the case of misbehaviour.
           </FormHelperText>
@@ -457,7 +464,7 @@ export default function VestingContracts() {
     //         onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, recipient: e.target.value })}
     //       />
     //       <FormHelperText>
-    //         {`this is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so SOB cannot repurpose them.`}
+    //         {`this is the account that receives the tokens once they have been vested and released. This cannot be changed. Tokens not released for whatever reason will be effectively burned, so Issuer cannot repurpose them.`}
     //       </FormHelperText>
     //     </FormControl>
     // <FormControl isRequired
@@ -474,7 +481,7 @@ export default function VestingContracts() {
     //     onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, operator: e.target.value })}
     //   />
     //   <FormHelperText>
-    //     {`This is either the validator or an optional delegation to an "operational" employee from SOB, which can approve the payout of fully vested tokens to the final recipient. They cannot do anything else`}
+    //     {`This is either the validator or an optional delegation to an "operational" employee from Issuer, which can approve the payout of fully vested tokens to the final recipient. They cannot do anything else`}
     //   </FormHelperText>
     // </FormControl>
     // <FormControl isRequired
@@ -491,7 +498,7 @@ export default function VestingContracts() {
     //     onChange={(e) => setInstantiateMsgDraft({ ...instantiateMsgDraft, oversight: e.target.value })}
     //   />
     //   <FormHelperText>
-    //     this is a secure multi-sig from SOB, which can be used in extraordinary circumstances, to change the Operator, or to halt the release of future tokens in the case of misbehaviour.
+    //     this is a secure multi-sig from Issuer, which can be used in extraordinary circumstances, to change the Operator, or to halt the release of future tokens in the case of misbehaviour.
     //   </FormHelperText>
     // </FormControl>
 

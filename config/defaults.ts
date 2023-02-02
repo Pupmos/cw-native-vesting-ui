@@ -11,4 +11,4 @@ export const coin: Asset = chainassets.assets.find(
     (asset) => asset.base === 'ujuno'
 ) as Asset;
 
-export const cwVestingCodeId = 1864;
+export const cwVestingCodeIds = [{codeId: 1929, capabilities: ['staking']}, { codeId: 1864, capabilities: [] }];

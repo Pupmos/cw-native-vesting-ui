@@ -5,12 +5,19 @@ import {
   FormControl,
   FormHelperText,
   FormLabel,
+  Grid,
   Heading,
   HStack,
   Input,
+  Select,
   Spacer,
   Stack,
   StackItem,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
   useToast,
 } from "@chakra-ui/react";
 import { ButtonShape } from "@cosmology-ui/utils";
@@ -21,14 +28,20 @@ import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { ConnectWalletButton } from "../../components";
-import { chainName, cwVestingCodeId } from "../../config";
+import { chainName, cwVestingCodeIds } from "../../config";
 
 export default function ContractAddressPage() {
   const router = useRouter();
   const contractAddress = router.query.address as string;
   const chain = useChain(chainName);
-  const { address, status, getCosmWasmClient, getSigningCosmWasmClient } =
-    chain;
+  const {
+    address,
+    status,
+    getCosmWasmClient,
+    getSigningCosmWasmClient,
+    getStargateClient,
+    getRestEndpoint,
+  } = chain;
   // /// Response for CanExecute query
   // #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
   // pub struct CanExecuteResponse {
@@ -125,7 +138,17 @@ export default function ContractAddressPage() {
   );
   const accountInfoContractQuery = useQuery(
     ["account-info-contract"],
-    async () => {
+    async (): Promise<{
+      recipient: string;
+      operator: string;
+      oversight: string;
+      vesting_plan: {
+        Continuous: {
+          start_at: string;
+          end_at: string;
+        };
+      };
+    }> => {
       const client = await getCosmWasmClient();
       const res = await client.queryContractSmart(contractAddress, {
         account_info: {},
@@ -133,14 +156,23 @@ export default function ContractAddressPage() {
       return res;
     }
   );
-  const tokenInfoContractQuery = useQuery(["token-info-contract"], async () => {
-    const client = await getCosmWasmClient();
-    const res = await client.queryContractSmart(contractAddress, {
-      token_info: {},
-    });
-    console.log(res);
-    return res;
-  });
+  const tokenInfoContractQuery = useQuery(
+    ["token-info-contract"],
+    async (): Promise<{
+      denom: string;
+      initial: string;
+      frozen: string;
+      released: string;
+      balance: string;
+    }> => {
+      const client = await getCosmWasmClient();
+      const res = await client.queryContractSmart(contractAddress, {
+        token_info: {},
+      });
+      console.log(res);
+      return res;
+    }
+  );
   const isHandedOverContractQuery = useQuery(
     ["is-handed-over-contract"],
     async () => {
@@ -200,13 +232,192 @@ export default function ContractAddressPage() {
   ]);
 
   const humanReadableReleasableTokens = useMemo(() => {
-    if (!releasableTokens) return '';
-    return new Decimal(releasableTokens).div(1000000).toString() + ' JUNO';
+    if (!releasableTokens) return "";
+    return new Decimal(releasableTokens).div(1000000).toString() + " JUNO";
   }, [releasableTokens]);
 
+  const withdrawableDelegatorRewards = useQuery(
+    ["withdrawable-delegator-rewards", contractAddress],
+    async () => {
+      if (!contractAddress) return;
+      const res = await fetch(
+        `${await getRestEndpoint()}/cosmos/distribution/v1beta1/delegators/${contractAddress}/rewards`
+      );
+      const data = await res.json();
+      return data.total.find((t: any) => t.denom === "ujuno")?.amount as string;
+    }
+  );
+
+  const totalStakeQuery = useQuery(["total-stake"], async () => {
+    const client = await getStargateClient();
+    const bal = await client.getBalanceStaked(contractAddress);
+    if (!bal) return "0";
+    return bal.amount;
+  });
+
+  // rest query for all validators
+  const validatorsQuery = useQuery(["validators"], async () => {
+    // load from cosmos directory 
+    const res = await fetch(
+      `https://validators.cosmos.directory`
+    );
+    const data = await res.json() as {
+      repository: {
+        url: string
+        branch: string
+        commit: string
+        timestamp: number
+      }
+      validators: Array<{
+        path: string
+        name: string
+        identity?: string
+        total_usd: number
+        total_users: number
+        chains: Array<{
+          name: string
+          moniker?: string
+          identity?: string
+          address: string
+          active?: boolean
+          jailed?: boolean
+          status?: string
+          delegations?: {
+            total_tokens?: string
+            total_count?: number
+            total_tokens_display?: number
+            total_usd?: number
+          }
+          description?: {
+            moniker: string
+            identity: string
+            website: string
+            security_contact: string
+            details: string
+          }
+          commission?: {
+            rate: number
+          }
+          rank?: number
+          slashes?: Array<{
+            validator_period: string
+            fraction: string
+          }>
+          image?: string
+          restake?: {
+            address: string
+            run_time: any
+            minimum_reward: number
+          }
+          missed_blocks_periods?: Array<{
+            blocks: number
+            missed: number
+          }>
+        }>
+        profile: {
+          $schema?: string
+          name: string
+          identity?: string
+          website?: string
+          description?: {
+            overview: string
+            team?: string
+            security?: string
+          }
+          contacts?: {
+            telephone?: string
+            email?: string
+            telegram?: string
+            twitter?: string
+            discord?: string
+            others?: {
+              emergency: string
+            }
+          }
+          details?: string
+          "security-contact"?: string
+          apps?: Array<string>
+          twitter?: string
+        }
+        services?: Array<{
+          title: string
+          description?: string
+          url: string
+          image?: string
+        }>
+      }>
+    }
+    
+    const vals = data.validators.flatMap((v) => v.chains.filter(c => c.name === "juno"));
+  
+    const uniquesDict: Record<string, boolean> = {};
+    // sort by case insensitive moniker then filter out jailed then use a reducer to ensure all validator addresss are unique
+    return vals
+      .sort((a, b) => {
+        return a.moniker?.localeCompare(b.moniker || '', undefined, {
+          sensitivity: "accent",
+        })!;
+      })
+      .filter((v) => !v.jailed)
+      .reduce((acc, cur) => {
+        if (!uniquesDict[cur.address]) {
+          uniquesDict[cur.address] = true;
+          acc.push(cur);
+        }
+        return acc;
+      }, [] as typeof vals)
+  });
+
+  // delegator validators query
+  const delegatorValidatorsQuery = useQuery(
+    ["delegator-validators", contractAddress],
+    async () => {
+      if (!contractAddress) return;
+      const res = await fetch(
+        `${await getRestEndpoint()}/cosmos/staking/v1beta1/delegations/${contractAddress}`
+      );
+      const data = await res.json();
+      return data.delegation_responses as {
+        delegation: {
+          delegator_address: string;
+          validator_address: string;
+        }  
+        shares: string;
+        balance: {
+          denom: string;
+          amount: string;
+        };
+      }[];
+    }
+  );
+
+  const [amount, setAmount] = useState("");
+  const [validator, setValidator] = useState("");
+
   type ExecuteMsg = {
-    release_tokens: {
+    release_tokens?: {
       amount: string;
+    };
+    distribution?: {
+      withdraw_delegator_reward: {
+        validator: string;
+      };
+    };
+    staking?: {
+      delegate?: {
+        validator: string;
+        amount: {
+          denom: string;
+          amount: string;
+        };
+      };
+      undelegate?: {
+        validator: string;
+        amount: {
+          denom: string;
+          amount: string;
+        };
+      };
     };
   };
 
@@ -246,33 +457,244 @@ export default function ContractAddressPage() {
 
   return (
     <Box p={4}>
-      <Heading as="h1" size="lg" mb={4}>
+      <Heading as="h1" size="xl" mb={4}>
         {vestingContractQuery.data?.label || "loading..."}
       </Heading>
+      <Heading as="h2" size="lg" mb={4}>
+        Operator Tools
+      </Heading>
       {/* ACTIONS (EXECUTE MSGS) */}
+      <Tabs>
+        <TabList>
+          <Tab>Release Tokens</Tab>
+          <Tab>Claim Rewards</Tab>
+          <Tab>Delegate</Tab>
+          <Tab>Undelegate</Tab>
+        </TabList>
 
-      <Stack spacing={4}>
+        <TabPanels>
+          <TabPanel>
+            Release vested tokens. These tokens will go to the recipient address
+            defined below.{" "}
+            {`You can only release tokens if you are the operator of this contract.`}
+            <Spacer></Spacer>
+            <Button
+              disabled={
+                accountInfoContractQuery.data?.operator == address
+                  ? false
+                  : true
+              }
+              onClick={() => {
+                executeContractMutation.mutate({
+                  release_tokens: {
+                    amount: releasableTokens?.toString() || "0",
+                  },
+                });
+              }}
+              isLoading={executeContractMutation.isLoading}
+              colorScheme="green"
+              mt={4}
+            >
+              Release {humanReadableReleasableTokens?.toString()}
+            </Button>
+          </TabPanel>
+          <TabPanel>
+            Claim staking rewards to you recipient address. These tokens will go
+            to the recipient address defined below.{" "}
+            {`You can only release tokens if you are the operator of this contract.`}
+            <Spacer></Spacer>
+            <Select
+              placeholder="Select validator"
+              onChange={(e) => setValidator(e.target.value)}
+              mt={4}
+            >
+              {delegatorValidatorsQuery.data?.map((v) => (
+                <option key={v.delegation.validator_address + v.delegation.delegator_address} value={v.delegation.validator_address}>
+                  {
+                    validatorsQuery.data?.find(
+                      (val) => val.address == v.delegation.validator_address
+                    )?.moniker
+                  }
+                </option>
+              ))}
+            </Select>
+            <Button
+              disabled={
+                accountInfoContractQuery.data?.operator == address
+                  ? false
+                  : true
+              }
+              onClick={async () => {
+                executeContractMutation.mutate({
+                  distribution: {
+                    withdraw_delegator_reward: {
+                      validator: validator,
+                    },
+                  },
+                });
+              }}
+              isLoading={executeContractMutation.isLoading}
+              colorScheme="green"
+              mt={4}
+            >
+              Withdraw{" "}
+              {(+(withdrawableDelegatorRewards.data || 0) / 1000000).toFixed(6)}{" "}
+              JUNO Rewards
+            </Button>
+          </TabPanel>
+          <TabPanel>
+            Delegate tokens to a validator. Only the operator of this contract
+            can delegate tokens. The withdrawal address is the recipient address
+            defined below.
+            <Spacer></Spacer>
+            {/* validator select */}
+            <FormControl id="validator" isRequired>
+              <FormLabel>Validator</FormLabel>
+              <Select
+                placeholder="Select validator"
+                onChange={(e) => {
+                  setValidator(e.target.value);
+                }}
+              >
+                {validatorsQuery.data?.map((validator) => (
+                  <option
+                    key={validator.address}
+                    value={validator.address}
+                  >
+                    {validator.moniker}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+            {/* amount input */}
+            <FormControl id="amount" isRequired>
+              <FormLabel>Amount (JUNO)</FormLabel>
+              <Input
+                placeholder="Amount"
+                type="number"
+                onChange={(e) => {
+                  setAmount((+(e.target.value || 0) * 1000000).toFixed(0));
+                }}
+              />
+            </FormControl>
+            <Spacer></Spacer>
+            <Button
+              disabled={
+                accountInfoContractQuery.data?.operator == address
+                  ? false
+                  : true
+              }
+              onClick={() => {
+                executeContractMutation.mutate({
+                  staking: {
+                    delegate: {
+                      validator: validator,
+                      amount: {
+                        denom: "ujuno",
+                        amount: amount,
+                      },
+                    },
+                  },
+                });
+              }}
+              isLoading={executeContractMutation.isLoading}
+              colorScheme="green"
+              mt={4}
+            >
+              Delegate
+            </Button>
+          </TabPanel>
+          <TabPanel>
+            Undelegate tokens from a validator. Only the operator of this
+            contract can undelegate tokens.
+            <Spacer></Spacer>
+            {/* validator select */}
+            <FormControl id="validator" isRequired>
+              <FormLabel>Validator</FormLabel>
+              <Select
+                placeholder="Select validator"
+                onChange={(e) => {
+                  setValidator(e.target.value);
+                }}
+              >
+                {validatorsQuery.data?.map((validator) => (
+                  <option
+                    key={validator.address}
+                    value={validator.address}
+                  >
+                    {validator.moniker}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+            {/* amount input */}
+            <FormControl id="amount" isRequired>
+              <FormLabel>Amount (JUNO)</FormLabel>
+              <Input
+                placeholder="Amount"
+                type="number"
+                onChange={(e) => {
+                  setAmount((+(e.target.value || 0) * 1000000).toFixed(0));
+                }}
+              />
+            </FormControl>
+            <Spacer></Spacer>
+            <Button
+              disabled={
+                accountInfoContractQuery.data?.operator == address
+                  ? false
+                  : true
+              }
+              onClick={() => {
+                executeContractMutation.mutate({
+                  staking: {
+                    undelegate: {
+                      validator: validator,
+                      amount: {
+                        denom: "ujuno",
+                        amount: amount,
+                      },
+                    },
+                  },
+                });
+              }}
+              isLoading={executeContractMutation.isLoading}
+              colorScheme="green"
+              mt={4}
+            >
+              Undelegate
+            </Button>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
+      <Heading as="h2" size="lg" mb={4}>
+        Contract Metadata
+      </Heading>
+      <Grid
+        gridGap={4}
+        gridTemplateColumns={{
+          base: "repeat(1, 1fr)",
+          md: "repeat(2, 1fr)",
+        }}
+      >
+        {/* total staked */}
+        <StackItem>
+          <Heading as="h2" size="md" mb={4}>
+            Total Staked
+          </Heading>
+          <Code>
+            {+(totalStakeQuery.data?.toString() || 0) / 1000000 || "loading..."}{" "}
+            JUNO
+          </Code>
+        </StackItem>
         {/* releaseable tokens */}
         <StackItem>
           <Heading as="h2" size="md" mb={4}>
             Releasable Tokens
           </Heading>
-          <Code>{humanReadableReleasableTokens?.toString() || "loading..."}</Code>
-          <Spacer></Spacer>
-          <Button
-            onClick={() => {
-              executeContractMutation.mutate({
-                release_tokens: {
-                  amount: releasableTokens?.toString() || "0",
-                },
-              });
-            }}
-            isLoading={executeContractMutation.isLoading}
-            colorScheme="green"
-            mt={4}
-          >
-            Release Tokens
-          </Button>
+          <Code>
+            {humanReadableReleasableTokens?.toString() || "loading..."}
+          </Code>
         </StackItem>
         {/* show the user whether they can execute the contract in a visually attractive way */}
         <StackItem>
@@ -321,15 +743,19 @@ export default function ContractAddressPage() {
               {/* show nanosecond time of accountInfoContractQuery.data?.vesting_plan.start_at and accountInfoContractQuery.data?.vesting_plan.end_at as locale date times */}
               <Code>
                 {new Date(
-                  accountInfoContractQuery.data?.vesting_plan.Continuous
-                    .start_at / 1000000
+                  +(
+                    accountInfoContractQuery.data?.vesting_plan.Continuous
+                      .start_at ?? 0
+                  ) / 1000000
                 ).toLocaleString()}
               </Code>
               -
               <Code>
                 {new Date(
-                  accountInfoContractQuery.data?.vesting_plan.Continuous
-                    .end_at / 1000000
+                  +(
+                    accountInfoContractQuery.data?.vesting_plan.Continuous
+                      .end_at || 0
+                  ) / 1000000
                 ).toLocaleString()}
               </Code>
             </StackItem>
@@ -415,7 +841,12 @@ export default function ContractAddressPage() {
               <Heading as="h3" size="sm" mb={4}>
                 Admin
               </Heading>
-              <Code>{vestingContractQuery.data?.admin ?? vestingContractQuery.isLoading ? "loading..." : 'None'}</Code>
+              <Code>
+                {vestingContractQuery.data?.admin ??
+                vestingContractQuery.isLoading
+                  ? "loading..."
+                  : "None"}
+              </Code>
             </StackItem>
             <StackItem>
               <Heading as="h3" size="sm" mb={4}>
@@ -431,7 +862,7 @@ export default function ContractAddressPage() {
             </StackItem>
           </Stack>
         </StackItem>
-      </Stack>
+      </Grid>
     </Box>
   );
 }
