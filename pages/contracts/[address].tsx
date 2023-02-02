@@ -805,7 +805,7 @@ export default function ContractAddressPage() {
                 Raw Data
               </Heading>
               <Code>
-                {JSON.stringify(tokenInfoContractQuery.data) || "loading..."}
+                {JSON.stringify(tokenInfoContractQuery.data, null, 2) || "loading..."}
               </Code>
             </StackItem>
           </Stack>
