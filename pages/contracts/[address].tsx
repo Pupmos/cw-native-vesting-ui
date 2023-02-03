@@ -30,6 +30,8 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import { ConnectWalletButton } from "../../components";
 import { chainName, cwVestingCodeIds } from "../../config";
 
+const asciichart = require("asciichart");
+
 export default function ContractAddressPage() {
   const router = useRouter();
   const contractAddress = router.query.address as string;
@@ -42,78 +44,6 @@ export default function ContractAddressPage() {
     getStargateClient,
     getRestEndpoint,
   } = chain;
-  // /// Response for CanExecute query
-  // #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
-  // pub struct CanExecuteResponse {
-  //     pub can_execute: bool,
-  // }
-
-  // /// Response for AccountInfo query
-  // #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
-  // pub struct AccountInfoResponse {
-  //     pub recipient: Addr,
-  //     pub operator: Addr,
-  //     pub oversight: Addr,
-  //     /// Timestamps for current discrete or continuous vesting plan
-  //     pub vesting_plan: VestingPlan,
-  // }
-
-  // /// Response for TokenInfo query
-  // #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
-  // pub struct TokenInfoResponse {
-  //     pub denom: String,
-  //     /// Initial amount of vested tokens
-  //     pub initial: Uint128,
-  //     /// Amount of currently frozen tokens
-  //     pub frozen: Uint128,
-  //     /// Amount of tokens that has been paid so far
-  //     pub released: Uint128,
-  //     /// Amount of all tokens from current contract
-  //     pub balance: Uint128,
-  // }
-
-  // /// Response for IsLiberated query
-  // #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
-  // pub struct IsHandedOverResponse {
-  //     /// Does this account completed hand over procedure and thus achieved
-  //     /// "liberated" status
-  //     pub is_handed_over: bool,
-  // }
-  // #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema, Debug)]
-  // #[serde(rename_all = "snake_case")]
-  // pub enum ExecuteMsg {
-  //     /// Execute regular messages allowing to use vesting account as fully
-  //     /// functional "proxy account"
-  //     Execute {
-  //         msgs: Vec<CosmosMsg>,
-  //     },
-  //     ReleaseTokens {
-  //         amount: Option<Uint128>,
-  //     },
-  //     /// If the recipient violates a contractual agreement, he may get find his
-  //     /// tokens frozen
-  //     FreezeTokens {
-  //         amount: Option<Uint128>,
-  //     },
-  //     UnfreezeTokens {
-  //         amount: Option<Uint128>,
-  //     },
-
-  //     // TODO: Add Bond/Unbond implementations
-  //     Bond {},
-  //     Unbond {
-  //         amount: Uint128,
-  //     },
-
-  //     /// Oversight is able to change the operator'a account address.
-  //     ChangeOperator {
-  //         address: Addr,
-  //     },
-  //     /// Once end time of the contract has passed, hand over can be performed.
-  //     /// It will burn all frozen tokens and set Oversight and Operator's addresses
-  //     /// to the Reciepient's key. This marks the contract as Liberated
-  //     HandOver {},
-  // }
 
   // Details: Calculating Tokens that can be Released
   // When calculating tokens that can be released, we use the following equations:
@@ -257,104 +187,104 @@ export default function ContractAddressPage() {
 
   // rest query for all validators
   const validatorsQuery = useQuery(["validators"], async () => {
-    // load from cosmos directory 
-    const res = await fetch(
-      `https://validators.cosmos.directory`
-    );
-    const data = await res.json() as {
+    // load from cosmos directory
+    const res = await fetch(`https://validators.cosmos.directory`);
+    const data = (await res.json()) as {
       repository: {
-        url: string
-        branch: string
-        commit: string
-        timestamp: number
-      }
+        url: string;
+        branch: string;
+        commit: string;
+        timestamp: number;
+      };
       validators: Array<{
-        path: string
-        name: string
-        identity?: string
-        total_usd: number
-        total_users: number
+        path: string;
+        name: string;
+        identity?: string;
+        total_usd: number;
+        total_users: number;
         chains: Array<{
-          name: string
-          moniker?: string
-          identity?: string
-          address: string
-          active?: boolean
-          jailed?: boolean
-          status?: string
+          name: string;
+          moniker?: string;
+          identity?: string;
+          address: string;
+          active?: boolean;
+          jailed?: boolean;
+          status?: string;
           delegations?: {
-            total_tokens?: string
-            total_count?: number
-            total_tokens_display?: number
-            total_usd?: number
-          }
+            total_tokens?: string;
+            total_count?: number;
+            total_tokens_display?: number;
+            total_usd?: number;
+          };
           description?: {
-            moniker: string
-            identity: string
-            website: string
-            security_contact: string
-            details: string
-          }
+            moniker: string;
+            identity: string;
+            website: string;
+            security_contact: string;
+            details: string;
+          };
           commission?: {
-            rate: number
-          }
-          rank?: number
+            rate: number;
+          };
+          rank?: number;
           slashes?: Array<{
-            validator_period: string
-            fraction: string
-          }>
-          image?: string
+            validator_period: string;
+            fraction: string;
+          }>;
+          image?: string;
           restake?: {
-            address: string
-            run_time: any
-            minimum_reward: number
-          }
+            address: string;
+            run_time: any;
+            minimum_reward: number;
+          };
           missed_blocks_periods?: Array<{
-            blocks: number
-            missed: number
-          }>
-        }>
+            blocks: number;
+            missed: number;
+          }>;
+        }>;
         profile: {
-          $schema?: string
-          name: string
-          identity?: string
-          website?: string
+          $schema?: string;
+          name: string;
+          identity?: string;
+          website?: string;
           description?: {
-            overview: string
-            team?: string
-            security?: string
-          }
+            overview: string;
+            team?: string;
+            security?: string;
+          };
           contacts?: {
-            telephone?: string
-            email?: string
-            telegram?: string
-            twitter?: string
-            discord?: string
+            telephone?: string;
+            email?: string;
+            telegram?: string;
+            twitter?: string;
+            discord?: string;
             others?: {
-              emergency: string
-            }
-          }
-          details?: string
-          "security-contact"?: string
-          apps?: Array<string>
-          twitter?: string
-        }
+              emergency: string;
+            };
+          };
+          details?: string;
+          "security-contact"?: string;
+          apps?: Array<string>;
+          twitter?: string;
+        };
         services?: Array<{
-          title: string
-          description?: string
-          url: string
-          image?: string
-        }>
-      }>
-    }
-    
-    const vals = data.validators.flatMap((v) => v.chains.filter(c => c.name === "juno"));
-  
+          title: string;
+          description?: string;
+          url: string;
+          image?: string;
+        }>;
+      }>;
+    };
+
+    const vals = data.validators.flatMap((v) =>
+      v.chains.filter((c) => c.name === "juno")
+    );
+
     const uniquesDict: Record<string, boolean> = {};
     // sort by case insensitive moniker then filter out jailed then use a reducer to ensure all validator addresss are unique
     return vals
       .sort((a, b) => {
-        return a.moniker?.localeCompare(b.moniker || '', undefined, {
+        return a.moniker?.localeCompare(b.moniker || "", undefined, {
           sensitivity: "accent",
         })!;
       })
@@ -365,7 +295,7 @@ export default function ContractAddressPage() {
           acc.push(cur);
         }
         return acc;
-      }, [] as typeof vals)
+      }, [] as typeof vals);
   });
 
   // delegator validators query
@@ -381,7 +311,7 @@ export default function ContractAddressPage() {
         delegation: {
           delegator_address: string;
           validator_address: string;
-        }  
+        };
         shares: string;
         balance: {
           denom: string;
@@ -455,11 +385,37 @@ export default function ContractAddressPage() {
     }
   );
 
+  const chartString = useMemo(() => {
+    const start = +(
+      accountInfoContractQuery.data?.vesting_plan.Continuous.start_at || 0
+    );
+    const end = +(
+      accountInfoContractQuery.data?.vesting_plan.Continuous.end_at || 0
+    );
+    const initial = tokenInfoContractQuery.data?.initial || 0;
+    const frozen = tokenInfoContractQuery.data?.frozen || 0;
+    if (!start || !end || !initial || !frozen) return "";
+    var s0 = new Array(120);
+    let released = 0;
+    for (var i = 0; i < s0.length; i++) {
+      const now = start + i * ((end - start) / s0.length);
+      released += +new Decimal(initial)
+        .mul(new Decimal(now).sub(start).div(new Decimal(end).sub(start)))
+        .sub(released)
+        .sub(frozen)
+        .floor()
+        .toString();
+      s0[i] = released;
+    }
+    return asciichart.plot(s0, { height: 10 });
+  }, []);
+
   return (
     <Box p={4}>
       <Heading as="h1" size="xl" mb={4}>
         {vestingContractQuery.data?.label || "loading..."}
       </Heading>
+
       <Heading as="h2" size="lg" mb={4}>
         Operator Tools
       </Heading>
@@ -509,7 +465,13 @@ export default function ContractAddressPage() {
               mt={4}
             >
               {delegatorValidatorsQuery.data?.map((v) => (
-                <option key={v.delegation.validator_address + v.delegation.delegator_address} value={v.delegation.validator_address}>
+                <option
+                  key={
+                    v.delegation.validator_address +
+                    v.delegation.delegator_address
+                  }
+                  value={v.delegation.validator_address}
+                >
                   {
                     validatorsQuery.data?.find(
                       (val) => val.address == v.delegation.validator_address
@@ -557,10 +519,7 @@ export default function ContractAddressPage() {
                 }}
               >
                 {validatorsQuery.data?.map((validator) => (
-                  <option
-                    key={validator.address}
-                    value={validator.address}
-                  >
+                  <option key={validator.address} value={validator.address}>
                     {validator.moniker}
                   </option>
                 ))}
@@ -618,10 +577,7 @@ export default function ContractAddressPage() {
                 }}
               >
                 {validatorsQuery.data?.map((validator) => (
-                  <option
-                    key={validator.address}
-                    value={validator.address}
-                  >
+                  <option key={validator.address} value={validator.address}>
                     {validator.moniker}
                   </option>
                 ))}
@@ -692,6 +648,7 @@ export default function ContractAddressPage() {
           <Heading as="h2" size="md" mb={4}>
             Releasable Tokens
           </Heading>
+
           <Code>
             {humanReadableReleasableTokens?.toString() || "loading..."}
           </Code>
@@ -805,7 +762,8 @@ export default function ContractAddressPage() {
                 Raw Data
               </Heading>
               <Code>
-                {JSON.stringify(tokenInfoContractQuery.data, null, 2) || "loading..."}
+                {JSON.stringify(tokenInfoContractQuery.data, null, 2) ||
+                  "loading..."}
               </Code>
             </StackItem>
           </Stack>
@@ -862,6 +820,9 @@ export default function ContractAddressPage() {
             </StackItem>
           </Stack>
         </StackItem>
+      </Grid>
+      <Grid>
+        <pre style={{ fontSize: "10px" }}>{chartString}</pre>
       </Grid>
     </Box>
   );
